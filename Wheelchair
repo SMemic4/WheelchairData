@@ -1,0 +1,85 @@
+library(tidyverse)
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+library(tidyverse)
+library(nycflights13)
+library(Lahman)
+library(ggstance)
+library(lvplot)
+library(ggbeeswarm)
+library(heatmaply) 
+library(hexbin)
+library(modelr)
+library(forcats)
+library(stringr)
+library(lubridate)
+library(purrr)
+library(readxl)
+
+#######################################################################################################################################################################
+# General Infomation
+# Currently there are 4 files that carry similar data but in different formats
+# 1. cfu_wc this data contains the various organisms found on different locations of the wheelchairs and their concentration in colony count (needs to be converted to log)
+# 2. rate_cfu : this data is similar to the dataset above but instead of tracking colonies of various organisms it tracks if there organism is there or not (positive or negative)
+# 3. cfu_flr - Floor survillence data. Tracks the number of organisms found on various locations for each wc run
+# 4. rate_flr - Floor survillence data. Similar to the one above but it only cares if the organism is present or not (positive or negative)
+
+# Importating the data into data frames
+
+rate_wc <- data.frame(read_excel("rate_wc.xlsx"))
+cfu_wc <- data.frame(read_excel("cfu_wc.xlsx"))
+cfu_flr <- data.frame(read_excel("cfu_flr.xlsx"))
+rate_flr <- data.frame(read_excel("rate_flr.xlsx"))
+
+
+
+#######################################################################################################################################################################
+# Functions 
+
+# This function is to select only data related to the run number, Area, and organism for simple calculations 
+clean <- function(x){
+  x$Area <- str_replace_all(x$Area, "^Glove$", "Gloves")
+  x$Area <- str_replace_all(x$Area, "Wheels After", "Wheels")
+  x$Area <- str_replace_all(x$Area, "Rims After", "Rims")
+  x %>% filter(Area != "Wheels Before", Area != "Rims Before") %>% select(Run, Area, Gram.Negative:Pseudomonas)
+}
+(clean(cfu_wc))
+
+#######################################################################################################################################################################
+
+
+rate_wc %>% filter(Area != "Wheels Before", Area != "Rims Before")
+
+# Creates a bar graph showing the incident rate of various organisms on different areas
+rate_wc %>% clean() %>% 
+  gather(Gram.Negative:Pseudomonas, key = "Organism", value = "Present") %>% 
+  group_by(Area, Organism) %>% 
+  filter(Present == "Positive") %>% 
+  summarize(count = n()) %>% 
+  ggplot() + 
+  geom_col(aes( x= Area, y = count, fill = Organism), position = position_dodge2(preserve = 'single')) +
+  scale_y_continuous(expand = c(0, 0), limits = c(0, 5), breaks = seq(0,5, by = 1))
+
+
+# This line gives the number of MDROs found during set of floor samples
+rate_flr %>% gather(Gram.Negative:Pseudomonas, key = "Organism", value = "Present" ) %>% filter(Present == "Positive") %>% group_by(Run) %>% 
+  ggplot(aes(x = Organism, fill = Organism)) + geom_bar() +
+  scale_y_continuous(expand = c(0, 0), limits = c(0, 12), breaks = seq(0,12, by = 1))
+
+# Simplifying the tables in order to combine together to make calculations simple
+rate2 <- rate_wc %>% clean() %>% gather(Gram.Negative:Pseudomonas, key = "Organism", value = "Present")
+rate3 <- rate_flr %>% select(Run, Gram.Negative:Pseudomonas) %>% gather(Gram.Negative:Pseudomonas, key = "Organism", value = "Present") %>% mutate(Area = "Floor") %>% filter(Present == "Positive") %>% unique() 
+rate <- rbind(rate2, rate3)
+
+# Important note about rate3 this df contains only the positive selected runs and NON duplicated
+# This is intended because the values will be spread across the data frame using spread() and any "missing" values will be filled with "Negative" to give the desired table for calculations
+
+
+
+rate %>% spread(key = "Area", value = "Present")
+
+
+
+  
+rate3 %>% filter(Present == "Positive")
