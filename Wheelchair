@@ -105,7 +105,7 @@ rate <- rate %>% spread(key = "Area", value = "Present", fill = "Negative")
 
 ### Creating graphs 
 
-rate4 %>% filter(Organism != "Klebsiella", Organism != "Pseudomonas", Organism != "VRE", Present != "Negative") %>% group_by(Area, Organism) %>% summarise(Count = n()) %>%
+rate4 %>% filter(Organism != "Klebsiella", Organism != "Pseudomonas", Present != "Negative") %>% group_by(Area, Organism) %>% summarise(Count = n()) %>%
     ggplot(aes(x = fct_infreq(Area), y = Count, fill = Organism)) + geom_col() +
   scale_y_continuous(expand = c(0,0), limits = c(0,30), breaks = seq(0,30, by = 5)) 
 
@@ -120,13 +120,13 @@ rate4 %>% filter(Organism != "Klebsiella", Organism != "Pseudomonas", Organism !
 
 
 # Good graph that shows the percentage of contamination of each organisms for each area of the wheelchair
-rate4 %>% filter(Organism != "Klebsiella", Organism != "Pseudomonas", Organism != "VRE", Present != "Negative") %>% group_by(Area, Organism) %>% summarise(Count = n()) %>% 
+rate4 %>% filter(Organism != "Klebsiella", Organism != "Pseudomonas", Present != "Negative") %>% group_by(Area, Organism) %>% summarise(Count = n()) %>% 
   ggplot(aes(x = fct_rev(fct_reorder(Area, Count)), y = Count, fill = Organism)) + geom_col(position = position_dodge2(preserve = 'single'), stat = "identity") +
   scale_y_continuous(expand = c(0,0), limits = c(0,10), breaks = seq(0,11, by = 1), labels = function(x) paste0(x*10, "%")) + 
   xlab("") +
   theme(legend.position = "bottom", legend.title = element_blank()) +
   ylab("Number of contaminations") +
-  scale_fill_discrete(labels=c('Clostridioides difficile ', 'Enterococcus', 'Gram Negative', 'MRSA'))
+  scale_fill_discrete(labels=c('Clostridioides difficile ', 'Enterococcus', 'Gram Negative', 'MRSA', "VRE"))
 
 
 rate4 %>% filter(Organism != "Klebsiella", Organism != "Pseudomonas", Organism != "VRE", Present != "Negative") %>% group_by(Area, Organism) %>% summarise(Count = (n()/max(Run)*100))
@@ -142,15 +142,15 @@ gt(rtable)
 
 ########################################## Testing
 
-
-x <- c("Clostridioides.difficile", "Enterococcus", "Gram.Negative", "MRSA")
-x1 <- c("Enterococcus", "Gram.Negative", "MRSA", "Clostridioides.difficile")
+rate4 <- rate4 %>% filter(Organism != "Klebsiella", Organism != "Pseudomonas", Present != "Negative")
+x <- c("Clostridioides.difficile", "Enterococcus", "Gram.Negative", "MRSA", "VRE")
+x1 <- c("Enterococcus", "Gram.Negative", "MRSA", "Clostridioides.difficile", "VRE")
 rate4$Organism <- factor(rate4$Organism, levels = x1)
 
-rate5 %>% filter(Organism != "Klebsiella", Organism != "Pseudomonas", Organism != "VRE", Present != "Negative") %>% group_by(Area, Organism) %>% summarise(Count = n())
+rate5 %>% filter(Organism != "Klebsiella", Organism != "Pseudomonas", Present != "Negative") %>% group_by(Area, Organism) %>% summarise(Count = n())
 
 
-fr5 <- rate4 %>% filter(Organism != "Klebsiella", Organism != "Pseudomonas", Organism != "VRE", Present != "Negative") %>% group_by(Area, Organism) %>% summarise(Count = n())
+fr5 <- rate4 %>% filter(Organism != "Klebsiella", Organism != "Pseudomonas", Present != "Negative") %>% group_by(Area, Organism) %>% summarise(Count = n())
 
 fr5$Organism <- factor(fr5$Organism, levels = x1) 
 fr5 %>% ggplot(aes(x = fct_rev(fct_reorder(Area, Count)), y = Count, fill = Organism)) + geom_col(position = position_dodge2(preserve = 'single')) +
@@ -158,17 +158,21 @@ fr5 %>% ggplot(aes(x = fct_rev(fct_reorder(Area, Count)), y = Count, fill = Orga
   xlab("") +
   theme(legend.position = "bottom", legend.title = element_blank()) +
   ylab("Incident Rate of Contamination") + 
-  scale_fill_discrete(labels=c('Enterococcus', 'Gram Negative', 'MRSA', 'Clostridioides difficile '))
+  scale_fill_discrete(labels=c('Enterococcus', 'Gram Negative', 'MRSA', 'Clostridioides difficile', "VRE"))
 
 
 fr6 <- fr5 %>% mutate(Percent = Count/12 *100)
 fr6 %>% ggplot(aes(x = fct_rev(fct_reorder(Area, Percent)), y = Percent, fill = Organism)) + geom_col(position = position_dodge2(preserve = 'single')) +
   scale_y_continuous(expand = c(0,0), limits = c(0,100), breaks = seq(0,100, by = 10), labels = function(x) paste0(x*1, "%") ) + 
-  xlab("") +
+  xlab("") + 
   theme(legend.position = "bottom", legend.title = element_blank()) +
-  ylab("Percent Contaimnation") + scale_fill_discrete(labels=c('Enterococcus', 'Gram Negative', 'MRSA', 'Clostridioides difficile '))
+  ylab("Percent Contaimnation") + scale_fill_discrete(labels=c('Enterococcus', 'Gram Negative', 'MRSA', 'Clostridioides difficile', "VRE")) 
+  
 
 organ_f(rate5)
+
+
+
 
 #################################################################################################################################################################
 # This section will only work with floor samples
@@ -189,4 +193,11 @@ ggplot(flor, aes(x = Sample, y = colony)) + geom_col() +
 flor %>% group_by(Area) %>% summarize(Avgcolony = mean(colony)) %>%
   ggplot(aes(x = reorder(Area, Avgcolony), y = Avgcolony)) + geom_col(fill = "navy") + coord_flip() +
   theme_tufte() + xlab("Average Colony Count") + ylab("") + theme(legend.key = element_blank())
+#################################################################################################################################################################
+# This section deals with colony counts on the wheelchairs
+wheel <- clean(cfu_wc)
+
+wheel <- wheel %>% rowwise() %>% mutate(colony = sum(Gram.Negative,MRSA,Enterococcus,Clostridioides.difficile,VRE,Pseudomonas,Klebsiella)) 
+wheel  %>% group_by(Area) %>% summarise(Average = mean(colony))
+wheel  %>% group_by(Area) %>% summarise(Average = mean(colony))
 
