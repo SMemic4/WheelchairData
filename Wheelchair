@@ -162,11 +162,13 @@ fr5 %>% ggplot(aes(x = fct_rev(fct_reorder(Area, Count)), y = Count, fill = Orga
 
 
 fr6 <- fr5 %>% mutate(Percent = Count/12 *100)
-fr6 %>% ggplot(aes(x = fct_rev(fct_reorder(Area, Percent)), y = Percent, fill = Organism)) + geom_col(position = position_dodge2(preserve = 'single')) +
+fr6 %>% ggplot(aes(x = fct_rev(fct_reorder(Area, Percent)), y = Percent, fill = Organism)) + geom_col(position = position_dodge2(preserve = 'single'), width = 0.5) +
   scale_y_continuous(expand = c(0,0), limits = c(0,100), breaks = seq(0,100, by = 10), labels = function(x) paste0(x*1, "%") ) + 
+  theme_tufte() +
   xlab("") + 
-  theme(legend.position = "bottom", legend.title = element_blank()) +
-  ylab("Percent Contaimnation") + scale_fill_discrete(labels=c('Enterococcus', 'Gram Negative', 'MRSA', 'Clostridioides difficile', "VRE")) 
+  theme(legend.position = "bottom", legend.title = element_blank(), panel.background = element_rect(colour = "black", size=1), axis.text = element_text(size = 15), axis.title = element_text(size = 15), legend.text = element_text(size = 15)) +
+  ylab("Percent Contamination") + scale_fill_discrete(labels=c('Enterococcus', 'Gram Negative', 'MRSA', 'Clostridioides difficile', "VRE")) 
+  
   
 
 organ_f(rate5)
@@ -200,4 +202,3 @@ wheel <- clean(cfu_wc)
 wheel <- wheel %>% rowwise() %>% mutate(colony = sum(Gram.Negative,MRSA,Enterococcus,Clostridioides.difficile,VRE,Pseudomonas,Klebsiella)) 
 wheel  %>% group_by(Area) %>% summarise(Average = mean(colony))
 wheel  %>% group_by(Area) %>% summarise(Average = mean(colony))
-
